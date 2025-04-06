@@ -9,5 +9,23 @@
 </head>
 <body>
   <app-root></app-root>
+  <footer id="footer">
+  Version: <span id="version"></span>
+</footer>
+
+<script>
+  fetch('/version.txt')
+    .then(response => response.text())
+    .then(data => {
+      const lines = data.split('\n');
+      const versionLine = lines.find(line => line.startsWith('Version'));
+      const version = versionLine.split(':')[1].trim();
+      document.getElementById('version').innerText = version;
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement de la version:', error);
+    });
+</script>
+
 </body>
 </html>
