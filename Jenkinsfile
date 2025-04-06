@@ -10,7 +10,7 @@ pipeline {
                 git credentialsId: 'github-creds', url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
             }
         }
-        stage('Générer version et tag') {
+       stage('Générer version et tag') {
             steps {
                 script {
                     def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "v0.0.0"', returnStdout: true).trim()
