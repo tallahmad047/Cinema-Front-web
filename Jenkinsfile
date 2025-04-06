@@ -7,10 +7,11 @@ pipeline {
 
     stages {
         stage('Cloner le projet') {
-            steps {
-                git url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
-            }
-        }
+    steps {
+        git credentialsId: 'github-creds', url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
+    }
+}
+
          stage('Générer version et tag') {
             steps {
                 script {
@@ -34,11 +35,12 @@ pipeline {
                     APP_VERSION = "${major}.${minor}.${patch}"
                     def newTag = "v${APP_VERSION}"
 
-                    sh "git config user.email 'jenkins@example.com'"
-                    sh "git config user.name 'Jenkins CI'"
+                    sh "git config user.email 'tallahmad047@gmail.com'"
+                    sh "git config user.name 'tallahmad047'"
 
                     sh "git tag ${newTag}"
-                    sh "git push origin ${newTag}"
+                   sh "git push https://tallahmad047:${GITHUB_TOKEN}@github.com/tallahmad047/Cinema-Front-web.git ${newTag}"
+
 
                     echo "📌 Nouveau tag généré : ${newTag}"
                 }
