@@ -1,4 +1,4 @@
-Version: 0.2.1
+Version: 0.2.2
 Branch: devs
-Build: 7
+Build: 10
 Date: 06/04/2025
