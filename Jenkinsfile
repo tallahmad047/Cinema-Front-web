@@ -39,7 +39,10 @@ pipeline {
                         sh "git config user.email 'tallahmad047@gmail.com'"
                         sh "git config user.name 'tallahmad047'"
                         sh "git tag ${newTag}"
-                        sh "git push https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/tallahmad047/Cinema-Front-web.git ${newTag}"
+                        sh """
+    git push https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/tallahmad047/Cinema-Front-web.git ${newTag}
+"""
+
                     }
 
                     echo "📌 Nouveau tag généré : ${newTag}"
