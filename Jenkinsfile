@@ -11,20 +11,7 @@ pipeline {
                 git url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
             }
         }
-
-        stage('Installer les dépendances') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'npm run build'
-            }
-        }
-
-        stage('Générer version et tag') {
+           stage('Générer version et tag') {
             steps {
                 script {
                     def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "v0.0.0"', returnStdout: true).trim()
@@ -59,6 +46,22 @@ pipeline {
         }
     }
 
+
+        stage('Installer les dépendances') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
+       
+
+                
     post {
         success {
             echo '✅ Build terminé avec succès.'
