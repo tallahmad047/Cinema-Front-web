@@ -7,12 +7,12 @@ pipeline {
 
     stages {
         stage('Cloner le projet') {
-    steps {
-        git credentialsId: 'github-creds', url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
-    }
-}
+            steps {
+                git credentialsId: 'github-creds', url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
+            }
+        }
 
-         stage('Générer version et tag') {
+        stage('Générer version et tag') {
             steps {
                 script {
                     def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "v0.0.0"', returnStdout: true).trim()
@@ -32,22 +32,20 @@ pipeline {
                         patch += 1
                     }
 
-                    APP_VERSION = "${major}.${minor}.${patch}"
-                    def newTag = "v${APP_VERSION}"
+                    def newVersion = "${major}.${minor}.${patch}"
+                    def newTag = "v${newVersion}"
 
-                    sh "git config user.email 'tallahmad047@gmail.com'"
-                    sh "git config user.name 'tallahmad047'"
-
-                    sh "git tag ${newTag}"
-                   sh "git push https://tallahmad047:${GITHUB_TOKEN}@github.com/tallahmad047/Cinema-Front-web.git ${newTag}"
-
+                    withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                        sh "git config user.email 'tallahmad047@gmail.com'"
+                        sh "git config user.name 'tallahmad047'"
+                        sh "git tag ${newTag}"
+                        sh "git push https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/tallahmad047/Cinema-Front-web.git ${newTag}"
+                    }
 
                     echo "📌 Nouveau tag généré : ${newTag}"
                 }
             }
         }
-    }
-
 
         stage('Installer les dépendances') {
             steps {
@@ -60,8 +58,8 @@ pipeline {
                 sh 'npm run build'
             }
         }
+    }
 
-      
     post {
         success {
             echo '✅ Build terminé avec succès.'
