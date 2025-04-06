@@ -136,7 +136,7 @@ Date: ${formattedDate}"""
             
             steps {
                 script {
-                    def imageTag = "tallahmad047/repo:cinema-web_${env.BRANCH_NAME}_v${APP_VERSION}"
+                    def imageTag = "tallahmad047/repo:cinema-web_${env.BRANCH_NAME}_v${appVersion}"
                     dir('artp-admin-web') {
                         echo "Building Docker image: ${imageTag}"
                         sh "docker build -t ${imageTag} ."
