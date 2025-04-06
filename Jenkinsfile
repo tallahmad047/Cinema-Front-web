@@ -27,6 +27,7 @@ pipeline {
                     } else {
                         patch += 1
                     }
+                    
                     def newVersion = "${major}.${minor}.${patch}"
                     def newTag = "v${newVersion}"
                     
@@ -44,12 +45,13 @@ pipeline {
                         newTag = "v${newVersion}"
                     }
                     
-                    // Créer le tag et le pousser
+                    // Créer le tag 
                     sh "git tag ${newTag}"
                     
-                    // Stocker la nouvelle version pour utilisation ultérieure
-                    env.NEW_TAG = newTag
-                    env.APP_VERSION = newVersion
+                    // IMPORTANT: Stocker les valeurs dans des fichiers temporaires pour les transmettre entre les étapes
+                    // Ces fichiers sont lus dans les autres étapes pour garantir la cohérence
+                    writeFile file: 'app_version.txt', text: newVersion
+                    writeFile file: 'new_tag.txt', text: newTag
                     
                     // Use a more secure approach for pushing
                     withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
@@ -64,19 +66,22 @@ pipeline {
         stage('Update Version File') {
             steps {
                 script {
+                    // Lire la version depuis le fichier temporaire créé à l'étape précédente
+                    def appVersion = readFile('app_version.txt').trim()
+                    def newTag = readFile('new_tag.txt').trim()
+                    
+                    echo "Mise à jour du fichier version.txt avec la version: ${appVersion}"
+                    
                     // Définir le chemin complet du fichier version.txt
                     def versionFile = 'src/version.txt'
-                    
-                    // Utiliser la version définie précédemment
-                    def appVersion = env.APP_VERSION ?: "0.0.0"
                     
                     // Formater la date au format JJ/MM/AAAA
                     def today = new Date()
                     def formattedDate = today.format('dd/MM/yyyy')
                     
-                    // Créer le contenu avec le format exact souhaité
+                    // Créer le contenu avec le format exact souhaité et la MÊME version que le tag
                     def versionContent = """Version: ${appVersion}
-Branch: ${env.BRANCH_NAME ?: 'devs'}
+Branch: ${env.BRANCH_NAME ?: 'master'}
 Build: ${BUILD_NUMBER}
 Date: ${formattedDate}"""
                     
@@ -85,15 +90,15 @@ Date: ${formattedDate}"""
                     
                     // Ajouter, committer et pousser les changements
                     sh "git add ${versionFile}"
-                    sh "git commit -m 'Mise à jour de version.txt pour build ${BUILD_NUMBER}' || echo 'Pas de changement à committer'"
+                    sh "git commit -m 'Mise à jour de version.txt pour la version ${appVersion} (build ${BUILD_NUMBER})' || echo 'Pas de changement à committer'"
                     
                     // Utiliser la même méthode d'authentification que pour le tag
                     withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                         sh 'git config credential.helper "!f() { echo username=\\$GITHUB_USER; echo password=\\$GITHUB_TOKEN; }; f"'
-                        sh "git push origin HEAD:${env.BRANCH_NAME ?: 'devs'}"
+                        sh "git push origin HEAD:${env.BRANCH_NAME ?: 'master'}"
                     }
                     
-                    echo "Fichier ${versionFile} mis à jour et poussé avec le format requis."
+                    echo "Fichier ${versionFile} mis à jour avec la version ${appVersion} et poussé."
                 }
             }
         }
@@ -114,6 +119,10 @@ Date: ${formattedDate}"""
         }
         failure {
             echo '❌ Le build a échoué.'
+        }
+        always {
+            // Nettoyer les fichiers temporaires
+            sh 'rm -f app_version.txt new_tag.txt || true'
         }
     }
 }
