@@ -10,60 +10,63 @@ pipeline {
                 git credentialsId: 'github-creds', url: 'https://github.com/tallahmad047/Cinema-Front-web.git'
             }
         }
-       stage('Générer version et tag') {
-            steps {
-                script {
-                    def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "v0.0.0"', returnStdout: true).trim()
-                    def baseVersion = lastTag.startsWith('v') ? lastTag.substring(1) : lastTag
-                    def versionParts = baseVersion.split('\\.')
-                    def major = versionParts[0].toInteger()
-                    def minor = versionParts[1].toInteger()
-                    def patch = versionParts[2].toInteger()
-                    if (env.BRANCH_NAME == 'master') {
-                        patch += 1
-                    } else if (env.BRANCH_NAME == 'devs') {
-                        minor += 1
-                        patch = 0
-                    } else {
-                        patch += 1
-                    }
-                    
-                    def newVersion = "${major}.${minor}.${patch}"
-                    def newTag = "v${newVersion}"
-                    
-                    // Configure git user
-                    sh "git config user.email 'tallahmad047@gmail.com'"
-                    sh "git config user.name 'tallahmad047'"
-                    
-                    // Vérifier si le tag existe déjà
-                    def tagExists = sh(script: "git tag -l ${newTag}", returnStdout: true).trim()
-                    
-                    if (tagExists == newTag) {
-                        echo "⚠️ Le tag ${newTag} existe déjà. Incrémentation supplémentaire du numéro de patch."
-                        patch += 1
-                        newVersion = "${major}.${minor}.${patch}"
-                        newTag = "v${newVersion}"
-                    }
-                    
-                    // Créer le tag 
-                    sh "git tag ${newTag}"
-                    
-                    // IMPORTANT: Stocker les valeurs dans des fichiers temporaires pour les transmettre entre les étapes
-                    // Ces fichiers sont lus dans les autres étapes pour garantir la cohérence
-                    writeFile file: 'app_version.txt', text: newVersion
-                    writeFile file: 'new_tag.txt', text: newTag
-                    
-                    // Use a more secure approach for pushing
-                    withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                        // Use credentials helper to avoid exposing token in logs
-                        sh 'git config credential.helper "!f() { echo username=\\$GITHUB_USER; echo password=\\$GITHUB_TOKEN; }; f"'
-                        sh "git push origin ${newTag}"
-                    }
-                    echo "📌 Nouveau tag généré : ${newTag}"
+      stage('Générer version et tag') {
+    steps {
+        script {
+            def lastTag = sh(script: 'git describe --tags --abbrev=0 || echo "v0.0.0"', returnStdout: true).trim()
+            def baseVersion = lastTag.startsWith('v') ? lastTag.substring(1) : lastTag
+            def versionParts = baseVersion.split('\\.')
+            def major = versionParts[0].toInteger()
+            def minor = versionParts[1].toInteger()
+            def patch = versionParts[2].toInteger()
+
+            if (env.BRANCH_NAME == 'master') {
+                patch += 1
+            } else if (env.BRANCH_NAME == 'devs') {
+                minor += 1
+                patch = 0
+            } else {
+                patch += 1
+            }
+
+            def tagExists = true
+            def newVersion
+            def newTag
+
+            // 🔁 Boucle jusqu'à trouver un tag qui n'existe pas
+            while (tagExists) {
+                newVersion = "${major}.${minor}.${patch}"
+                newTag = "v${newVersion}"
+                def result = sh(script: "git tag -l ${newTag}", returnStdout: true).trim()
+                if (result == newTag) {
+                    echo "⚠️ Le tag ${newTag} existe déjà. Incrémentation du patch."
+                    patch += 1
+                } else {
+                    tagExists = false
                 }
             }
+
+            // Configure git user
+            sh "git config user.email 'tallahmad047@gmail.com'"
+            sh "git config user.name 'tallahmad047'"
+
+            // Créer le tag
+            sh "git tag ${newTag}"
+
+            // Stocker les fichiers
+            writeFile file: 'app_version.txt', text: newVersion
+            writeFile file: 'new_tag.txt', text: newTag
+
+            withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                sh 'git config credential.helper "!f() { echo username=\\$GITHUB_USER; echo password=\\$GITHUB_TOKEN; }; f"'
+                sh "git push origin ${newTag}"
+            }
+
+            echo "📌 Nouveau tag généré : ${newTag}"
         }
-      
+    }
+}
+
                     
        
           
