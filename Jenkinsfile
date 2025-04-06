@@ -65,10 +65,12 @@ pipeline {
         }
       
                     
-           stage('Update Version File') {
+       
+          
+          stage('Update Version File') {
     steps {
         script {
-            // Lire la version depuis le fichier temporaire créé à l'étape précédente
+            // Lire la version depuis le fichier temporaire créé précédemment
             def appVersion = readFile('app_version.txt').trim()
             def newTag = readFile('new_tag.txt').trim()
             
@@ -85,40 +87,37 @@ pipeline {
             sh "git config user.email 'tallahmad047@gmail.com'"
             sh "git config user.name 'tallahmad047'"
             
-            // Récupérer les derniers changements de la branche distante
+            // Vérifier le nom de la branche actuelle
+            def currentBranch = env.BRANCH_NAME ?: 'devs'
+            
             withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                 sh 'git config credential.helper "!f() { echo username=\\$GITHUB_USER; echo password=\\$GITHUB_TOKEN; }; f"'
                 
-                // Vérifier le nom de la branche actuelle
-                def currentBranch = env.BRANCH_NAME ?: 'devs'
+                // ========== APPROCHE ALTERNATIVE: RESET COMPLET ==========
+                // Au lieu de tenter un merge qui peut causer des conflits, 
+                // simplement récupérer l'état distant et appliquer nos modifications par-dessus
                 
-                // Forcer la récupération de la branche distante
+                // 1. Récupérer les références distantes
                 sh "git fetch origin ${currentBranch}"
                 
-                // Option 1 : Merge (préserve l'historique)
-                sh "git merge origin/${currentBranch} --allow-unrelated-histories -m 'Merge remote changes'"
+                // 2. Réinitialiser la branche locale à l'état distant
+                sh "git reset --hard origin/${currentBranch}"
                 
-                // Option 2 (alternative) : Reset (simplifié mais écrase l'historique local)
-                // sh "git reset --hard origin/${currentBranch}"
-            }
-            
-            // Créer le contenu avec le format exact souhaité et la MÊME version que le tag
-            def versionContent = """Version: ${appVersion}
-Branch: ${env.BRANCH_NAME ?: 'devs'}
+                // 3. Maintenant créer/mettre à jour le fichier version.txt
+                def versionContent = """Version: ${appVersion}
+Branch: ${currentBranch}
 Build: ${BUILD_NUMBER}
 Date: ${formattedDate}"""
-            
-            // Écrire dans le fichier
-            writeFile file: versionFile, text: versionContent
-            
-            // Ajouter, committer et pousser les changements
-            sh "git add ${versionFile}"
-            sh "git commit -m 'Mise à jour de version.txt pour la version ${appVersion} (build ${BUILD_NUMBER})' || echo 'Pas de changement à committer'"
-            
-            // Utiliser la même méthode d'authentification que pour le tag
-            withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                sh 'git config credential.helper "!f() { echo username=\\$GITHUB_USER; echo password=\\$GITHUB_TOKEN; }; f"'
-                sh "git push origin HEAD:${env.BRANCH_NAME ?: 'devs'}"
+                
+                // Écrire dans le fichier
+                writeFile file: versionFile, text: versionContent
+                
+                // 4. Ajouter et committer le changement
+                sh "git add ${versionFile}"
+                sh "git commit -m 'Mise à jour de version.txt pour la version ${appVersion} (build ${BUILD_NUMBER})'"
+                
+                // 5. Pousser le changement
+                sh "git push origin HEAD:${currentBranch}"
             }
             
             echo "Fichier ${versionFile} mis à jour avec la version ${appVersion} et poussé."
