@@ -129,9 +129,20 @@ Date: ${formattedDate}"""
                 sh 'npm install'
             }
         }
-        stage('Build') {
+       stage('Build and Push Docker Image') {
+            
             steps {
-                sh 'npm run build'
+                script {
+                    def imageTag = "tallahmad047/repo:cinema-web_${env.BRANCH_NAME}_v${APP_VERSION}"
+                    dir('artp-admin-web') {
+                        echo "Building Docker image: ${imageTag}"
+                        sh "docker build -t ${imageTag} ."
+                        sh "docker run -d -p 4200:4200 ${imageTag}"
+
+                       
+                    }
+                   
+                }
             }
         }
     }
