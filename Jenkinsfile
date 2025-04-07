@@ -111,14 +111,15 @@ Date: ${formattedDate}"""
             
             steps {
                 script {
+                  def appVersion = readFile('app_version.txt').trim()
                     def imageTag = "tallahmad047/repo:cinema-web_${env.BRANCH_NAME}_v${appVersion}"
-                    dir('artp-admin-web') {
+                    
                         echo "Building Docker image: ${imageTag}"
                         sh "docker build -t ${imageTag} ."
                         sh "docker run -d -p 4200:4200 ${imageTag}"
 
                        
-                    }
+                    
                    
                 }
             }
