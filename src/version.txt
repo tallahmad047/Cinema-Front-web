@@ -1,4 +1,4 @@
-Version: 0.2.5
+Version: 0.2.6
 Branch: master
-Build: 14
+Build: 15
 Date: 07/04/2025
