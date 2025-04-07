@@ -116,7 +116,7 @@ Date: ${formattedDate}"""
                     
                         echo "Building Docker image: ${imageTag}"
                         sh "docker build -t ${imageTag} ."
-                        sh "docker run -d -p 4200:4200 ${imageTag}"
+                        sh "docker run -d -p 80:80 ${imageTag}"
 
                        
                     
